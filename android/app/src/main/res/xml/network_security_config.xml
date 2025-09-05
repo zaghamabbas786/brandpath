@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+ <base-config cleartextTrafficPermitted="true">
+    <trust-anchors>
+      <certificates src="system" />
+      <certificates src="@raw/ca" />
+    </trust-anchors>
+  </base-config>
+      <!-- Allow only HTTPS for production domain -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">handheldapi.central.local</domain>
+        <trust-anchors>
+        <!-- Trust system certificates --> 
+            <certificates src="system" />
+            <!-- Trust your self-signed certificate -->
+            <certificates src="@raw/ca" />
+        </trust-anchors>
+    </domain-config>
+    <!-- Allow HTTP for staging domain -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">handheldapi-stg.central.local</domain>
+         <trust-anchors>
+        <!-- Trust system certificates --> 
+            <certificates src="system" />
+            <!-- Trust your self-signed certificate -->
+            <certificates src="@raw/ca" />
+        </trust-anchors>
+    </domain-config>
+   <!-- Allow HTTP for localhost -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+    </domain-config>
+
+    <!-- Allow HTTP for Android emulator -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>
