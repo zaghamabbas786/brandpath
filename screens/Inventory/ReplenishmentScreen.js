@@ -23,7 +23,7 @@ const ReplenishmentScreen = ({
   const isFocused = useIsFocused();
   const webViewRef = useRef(null);
   useEffect(() => {
-    if (!isFocused) return;
+    if (!isFocused) {return;}
 
     let isMounted = true;
 

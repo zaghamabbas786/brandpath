@@ -4,6 +4,7 @@ import * as actions from '../actions/global';
 import * as goodsInActions from '../actions/goodsIn';
 import * as auth from '../actions/auth';
 import * as inventory from '../actions/inventory';
+import * as loggingActions from '../actions/logging';
 import * as globalApi from '../api/global';
 import * as inventoryApi from '../api/inventoryControl';
 import {setSession} from '../auth/utils';
@@ -58,9 +59,26 @@ function* watchUserSetDispRequest() {
 
 function* barCodeSaga(payload) {
   try {
+    console.log('📦 barCodeSaga - Received payload:', payload);
+    console.log('📦 barCodeSaga - Payload data:', payload.data);
+    
     yield put(actions.setLoading(true));
 
     const {currentPage, userName, barcode, page} = payload.data;
+    
+    console.log('📦 barCodeSaga - Extracted values:', {
+      currentPage,
+      userName,
+      barcode,
+      page,
+    });
+
+    // Log barcode scan attempt
+    yield put(
+      loggingActions.logBarcodeScan(barcode, currentPage || page, null, {
+        userName,
+      }),
+    );
 
     // Utility function to handle common response logic
     const handleResponse = function* (response) {
@@ -69,18 +87,23 @@ function* barCodeSaga(payload) {
           'Unexpected error occurred',
           'Response format is invalid or empty.',
         ]);
-      } else if (response.data.errText || response.data.errDetail) {
+      } else if (response?.data?.errText || response?.data?.errDetail) {
         //i have added this if logic for the screens where we get extrainfo with error but the page type will be barcode , mostly used for scan screens
         if (
-          response.data.extraInfo &&
+          response?.data?.extraInfo &&
           currentPage !== 'CMD.PBUILDER' &&
           currentPage !== 'CMD.PPICK' &&
+          currentPage !== 'CMD.PICK' &&
+          currentPage !== 'pick' &&
           currentPage !== 'CMD.CBUILDER' &&
           currentPage !== 'CMD.RET.RTS' &&
           currentPage !== 'STOCKMOVE' &&
           currentPage !== 'CMD.ESCALATION' &&
           currentPage !== 'CMD.GOOGLE.INBOUND' &&
-          currentPage !== 'CMD.ACCESSCONTROL'
+          currentPage !== 'CMD.ACCESSCONTROL' &&
+          currentPage !== 'CMD.ST.LIST' &&
+          currentPage !== 'CMD.DISPATCH' &&
+          currentPage !== 'CMD.PDISPATCH'
         ) {
           // Navigate to the screen with the provided data
 
@@ -92,17 +115,36 @@ function* barCodeSaga(payload) {
 
           yield call(navigate, 'ScanDetailScreen');
         } else if (
-          response.data.extraInfo &&
-          (currentPage === 'CMD.GOOGLE.INBOUND' || currentPage === 'CMD.PPICK')
+          response?.data?.extraInfo &&
+          (currentPage === 'CMD.GOOGLE.INBOUND' || currentPage === 'CMD.PPICK' || currentPage === 'CMD.PICK' || currentPage === 'pick' || currentPage === 'CMD.ST.LIST' || currentPage === 'CMD.DISPATCH' || currentPage === 'CMD.PDISPATCH')
         ) {
           yield put(actions.getScreenSuccess(response.data));
           yield put(actions.getLocalCurrentScreen(response.data.page));
         }
 
+        // Log backend error (from successful HTTP response with error in body)
+        yield put(
+          loggingActions.logError(
+            `Backend Error: ${response?.data?.errText || 'Error occurred'}`,
+            null,
+            {
+              eventType: 'backend_error',
+              screenName: currentPage,
+              barcode: barcode,
+              errorMessage: response?.data?.errText,
+              errorDetails: {
+                errText: response?.data?.errText,
+                errDetail: response?.data?.errDetail,
+                extraInfo: response?.data?.extraInfo,
+              },
+            },
+          ),
+        );
+
         // Handle the error as usual
-        yield processError([response.data.errText, response.data.errDetail]);
+        yield processError([response?.data?.errText, response?.data?.errDetail]);
       } else if (
-        response.data.barcode.toLowerCase() === 'cmd.back' &&
+        response?.data?.barcode?.toLowerCase() === 'cmd.back' &&
         response.data.extraInfo === ''
       ) {
         yield put(inventory.clearStockMove());
@@ -116,21 +158,31 @@ function* barCodeSaga(payload) {
           currentPage === 'CMD.PBUILDER' ||
           currentPage === 'CMD.CBUILDER' ||
           currentPage === 'CMD.PPICK' ||
+          currentPage === 'CMD.PICK' ||
+          currentPage === 'pick' ||
           currentPage === 'CMD.RET.RTS' ||
           currentPage === 'CMD.ESCALATION' ||
           currentPage === 'CMD.GOOGLE.INBOUND' ||
-          currentPage === 'CMD.ACCESSCONTROL'
+          currentPage === 'CMD.ACCESSCONTROL' ||
+          currentPage === 'CMD.ST.LIST' ||
+          currentPage === 'CMD.DISPATCH' ||
+          currentPage === 'CMD.PDISPATCH'
         ) {
           yield put(actions.getScreenSuccess(response.data));
           if (
             currentPage === 'CMD.PBUILDER' ||
             currentPage === 'CMD.PPICK' ||
+            currentPage === 'CMD.PICK' ||
+            currentPage === 'pick' ||
             currentPage === 'CMD.ITEMINFORMATION' ||
             currentPage === 'CMD.CBUILDER' ||
             currentPage === 'CMD.RET.RTS' ||
             currentPage === 'CMD.ESCALATION' ||
             currentPage === 'CMD.GOOGLE.INBOUND' ||
-            currentPage === 'CMD.ACCESSCONTROL'
+            currentPage === 'CMD.ACCESSCONTROL' ||
+            currentPage === 'CMD.ST.LIST' ||
+            currentPage === 'CMD.DISPATCH' ||
+            currentPage === 'CMD.PDISPATCH'
           ) {
             yield put(actions.getLocalCurrentScreen(response.data.page));
           }
@@ -148,7 +200,7 @@ function* barCodeSaga(payload) {
             yield put(
               inventory.getStockMoveDetailSuccess({
                 data: stockMoveDetail.data,
-                extrainfo: conformMove ? response.data.extraInfo : null,
+                extrainfo: conformMove ? response?.data?.extraInfo : null,
               }),
             );
           } else {
@@ -157,15 +209,23 @@ function* barCodeSaga(payload) {
             ]);
           }
         } else {
+          // Check if this is a print command - don't show success message for print commands
+          const isPrintCommand = barcode && barcode.includes('CMD.NONSTOCK?op=print');
+          
+          if (isPrintCommand) {
+            // Clear any existing message to ensure clean state for print success message
+            yield put(actions.clearMessage());
+          }
+          
           yield put(
             actions.barCodeSuccess({
               barcodeResult: response.data,
-              message: 'Scanned successfully!',
+              message: isPrintCommand ? undefined : 'Scanned successfully!',
             }),
           );
           if (
-            response.data.page === 'ACCESSCONTROL' ||
-            response.data.page === 'ITEMINFORMATION'
+            response?.data?.page === 'ACCESSCONTROL' ||
+            response?.data?.page === 'ITEMINFORMATION'
           ) {
             yield put(actions.getLocalCurrentScreen(response.data.page));
           }
@@ -188,6 +248,11 @@ function* barCodeSaga(payload) {
       const response = yield call(goodsIn.getDockToStock, userName, barcode);
       yield put(goodsInActions.getDockToStockSuccess(response.data));
     } else if (currentPage === 'STOCKMOVE') {
+      console.log('🔍 STOCKMOVE - Calling scanBarcode API with:', {
+        userName,
+        page: currentPage,
+        barcode,
+      });
       const response = yield call(
         globalApi.scanBarcode,
         userName,
@@ -202,7 +267,7 @@ function* barCodeSaga(payload) {
       }
     } else if (
       currentPage === 'security_check' &&
-      barcode.toLowerCase() !== 'cmd.back'
+      barcode?.toLowerCase() !== 'cmd.back'
     ) {
       const response = yield call(
         inventoryControl.getSecurityCheck,
@@ -216,12 +281,20 @@ function* barCodeSaga(payload) {
         yield processError([`Unexpected response status: ${response.status}`]);
       }
     } else {
+      console.log('🔍 Calling scanBarcode API with:', {
+        userName,
+        page,
+        barcode,
+        currentPage,
+      });
+      console.log('📍 Page parameter being sent:', page);
       const response = yield call(
         globalApi.scanBarcode,
         userName,
         page,
         barcode,
       );
+      console.log('✅ scanBarcode API response:', response.status, response.data);
 
       if (response.status === 200) {
         yield* handleResponse(response);
@@ -231,6 +304,22 @@ function* barCodeSaga(payload) {
     }
   } catch (e) {
     const formattedError = formatError(e);
+
+    // Log barcode scan error
+    yield put(
+      loggingActions.logError(
+        `Barcode Scan Failed: ${payload.data.barcode}`,
+        e,
+        {
+          eventType: 'barcode_scan',
+          barcode: payload.data.barcode,
+          page: payload.data.currentPage || payload.data.page,
+          response: 'failed',
+          errorMessage: formattedError,
+        },
+      ),
+    );
+
     yield put(
       actions.barCodeError({
         error: formattedError,
@@ -247,9 +336,11 @@ function* watchUserBarCodeRequest() {
 }
 
 // Fetch user state
-function* fetchUserState({username}) {
+function* fetchUserState(action) {
   try {
+    const {username} = action.payload;
     const response = yield call(globalApi.getUserState, username);
+
 
     if (response.status === 204) {
       yield call(setSession, null);
@@ -265,7 +356,9 @@ function* fetchUserState({username}) {
       yield put(actions.getUserStateSuccess(response.data));
     }
   } catch (e) {
+    console.error('[GetUserState] Failed:', e);
     yield call(setSession, null);
+    const {username} = action.payload;
     yield put(auth.logoutRequest(username));
     const formattedError = formatError(e);
     yield put(
@@ -324,6 +417,134 @@ function* watchPartnerListRequest() {
   yield takeLatest(types.GET_PARTNER_LIST_REQUEST, fetchPartnerList);
 }
 
+// Fetch shipping list
+function* fetchShippingList(action) {
+  try {
+    const { userName } = action.payload;
+
+    if (!userName) {
+      throw new Error('Username is required');
+    }
+
+    const response = yield call(globalApi.getShippingList, userName);
+    yield put(actions.getShippingListSuccess(response.data));
+  } catch (e) {
+    const formattedError = formatError(e);
+    yield put(
+      actions.getShippingListError({
+        error: formattedError,
+        errorText: formattedError,
+      }),
+    );
+  }
+}
+
+function* watchShippingListRequest() {
+  yield takeLatest(types.GET_SHIPPING_LIST_REQUEST, fetchShippingList);
+}
+
+// Set shipping type
+function* setShippingTypeSaga(action) {
+  try {
+    yield put(actions.setLoading(true));
+    const {userName, courierName} = action.payload;
+
+    if (!userName || !courierName) {
+      throw new Error('Username and courier name are required');
+    }
+
+    const response = yield call(
+      globalApi.setShippingType,
+      userName,
+      courierName,
+    );
+
+    if (response.status === 200) {
+      yield put(
+        actions.setShippingTypeSuccess('Shipping type updated successfully!', courierName),
+      );
+    } else {
+      yield put(
+        actions.setShippingTypeError({
+          error: `Unexpected response status: ${response.status}`,
+        }),
+      );
+    }
+  } catch (e) {
+    const formattedError = formatError(e);
+    yield put(
+      actions.setShippingTypeError({
+        error: formattedError,
+        errorText: formattedError,
+      }),
+    );
+  } finally {
+    yield put(actions.setLoading(false));
+  }
+}
+
+function* watchSetShippingTypeRequest() {
+  yield takeLatest(types.SET_SHIPPING_TYPE_REQUEST, setShippingTypeSaga);
+}
+
+// Fetch dispatch list
+function* fetchDispatchList(action) {
+  try {
+    yield put(actions.setLoading(true));
+    const {userName} = action.payload;
+
+    if (!userName) {
+      throw new Error('Username is required');
+    }
+
+    const response = yield call(globalApi.getDispatchList, userName);
+    yield put(actions.getDispatchListSuccess(response.data));
+  } catch (e) {
+    const formattedError = formatError(e);
+    yield put(
+      actions.getDispatchListError({
+        error: formattedError,
+        errorText: formattedError,
+      }),
+    );
+  } finally {
+    yield put(actions.setLoading(false));
+  }
+}
+
+function* watchDispatchListRequest() {
+  yield takeLatest(types.GET_DISPATCH_LIST_REQUEST, fetchDispatchList);
+}
+
+// Fetch order detail
+function* fetchOrderDetail(action) {
+  try {
+    yield put(actions.setLoading(true));
+    const {userName, orderRef} = action.payload;
+
+    if (!userName || !orderRef) {
+      throw new Error('Username and order reference are required');
+    }
+
+    const response = yield call(globalApi.getOrderDetail, userName, orderRef);
+    yield put(actions.getOrderDetailSuccess(response.data));
+  } catch (e) {
+    const formattedError = formatError(e);
+    yield put(
+      actions.getOrderDetailError({
+        error: formattedError,
+        errorText: formattedError,
+      }),
+    );
+  } finally {
+    yield put(actions.setLoading(false));
+  }
+}
+
+function* watchOrderDetailRequest() {
+  yield takeLatest(types.GET_ORDER_DETAIL_REQUEST, fetchOrderDetail);
+}
+
 // Fetch screen data
 function* fetchScreens(payload) {
   try {
@@ -351,6 +572,21 @@ function* fetchScreens(payload) {
     yield call(setSession, null);
     yield put(auth.logoutRequest(payload.username));
     const formattedError = formatError(e);
+
+    // Log screen fetch error
+    yield put(
+      loggingActions.logError(
+        `Screen Data Fetch Failed: ${payload.url}`,
+        e,
+        {
+          eventType: 'screen_fetch',
+          url: payload.url,
+          response: 'failed',
+          errorMessage: formattedError,
+        },
+      ),
+    );
+
     yield put(
       actions.getScreenError({
         error: formattedError,
@@ -371,6 +607,10 @@ const globalSagas = [
   fork(watchScreenRequest),
   fork(watchLocationListRequest),
   fork(watchPartnerListRequest),
+  fork(watchShippingListRequest),
+  fork(watchSetShippingTypeRequest),
+  fork(watchDispatchListRequest),
+  fork(watchOrderDetailRequest),
   fork(watchUserSetDispRequest),
   fork(watchUserBarCodeRequest),
 ];

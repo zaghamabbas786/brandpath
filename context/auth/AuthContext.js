@@ -52,7 +52,7 @@ const AuthProvider = ({children}) => {
   useEffect(() => {
     initialize();
 
-    // eslint-disable-next-line
+
   }, [initialize]);
 
   return children;

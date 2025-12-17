@@ -14,6 +14,7 @@ import {logoutRequest} from '../actions/auth';
 import {getScreenRequest} from '../actions/global';
 import ButtonWithIcon from '../components/ButtonWithIcon';
 import {chunkArray} from '../utils/chunkArray';
+import {useLogger} from '../hooks/useLogger';
 
 const HomeScreen = ({
   Auth: {user, homeScreen},
@@ -21,13 +22,34 @@ const HomeScreen = ({
   logout,
   getScreen,
 }) => {
+  const logger = useLogger();
+
   const handleNavigate = ({screen, action}) => {
     const trimmedUrl = action.url.trim();
+
+    // Log menu navigation
+    logger.userAction(`Navigate to ${screen}`, {
+      screenName: screen,
+      url: trimmedUrl,
+      menuItem: screen,
+    });
+
     getScreen(trimmedUrl);
     navigation.navigate(screen);
   };
+
   const handleVersionNavigate = () => {
+    logger.userAction('Navigate to Version Screen', {
+      screenName: 'VersioningScreen',
+    });
     navigation.navigate('VersioningScreen');
+  };
+
+  const handleLogout = () => {
+    logger.userAction('User Logout', {
+      username: user.username,
+    });
+    logout(user.username);
   };
 
   // Chunk buttons into rows of two
@@ -80,7 +102,7 @@ const HomeScreen = ({
       </TouchableOpacity>
       {/* Fixed Logout Button */}
       <TouchableOpacity
-        onPress={() => logout(user.username)}
+        onPress={handleLogout}
         style={{marginVertical: 15}}>
         <LinearGradient
           colors={['#0175b2', '#4b3d91']}

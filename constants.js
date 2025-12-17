@@ -1,5 +1,71 @@
 export const versionData = [
   {
+    title: 'Version 37(3.7.3)',
+    releaseDate: '14/11/2025',
+    details: [
+      'Added label printing Api on dispatch complete.',],
+  },
+  {
+    title: 'Version 36(3.7.2)',
+    releaseDate: '07/11/2025',
+    details: [
+      'Fixed the label printing issue on main menu screen.',],
+  },
+  {
+    title: 'Version 35(3.7.1)',
+    releaseDate: '03/11/2025',
+    details: [
+      'Added Logging functionality and integrated it with the app.',],
+  },
+  {
+    title: 'Version 34(3.7.0)',
+    releaseDate: '17/10/2025',
+    details: [
+      'Added paperless dispatch screen and handled all of its use cases.',
+    ],
+  },
+  {
+    title: 'Version 33(3.6.4)',
+    releaseDate: '10/10/2025',
+    details: [
+      'Added DispatchList Screen and handled all of its use cases.',
+    ],
+  },
+  {
+    title: 'Version 32(3.6.3)',
+    releaseDate: '08/10/2025',
+    details: [
+      'Fixed the label printing issue on non-stock move screen.',
+    ],
+  },
+  {
+    title: 'Version 31(3.6.2)',
+    releaseDate: '06/10/2025',
+    details: [
+      'Fixed the resolution and input modal issues on stock move.',
+    ],
+  },
+  {
+    title: 'Version 30(3.6.1)',
+    releaseDate: '03/10/2025',
+    details: [
+      'Fixed non stock move comment issue.',
+      'Added printing label functionality on non stock move screen.',
+      'Handled the null issue on stock move screen.',
+      'Brandhub logo margin fixed.',
+    ],
+  },
+  {
+    title: 'Version 29(3.6.0)',
+    releaseDate: '29/09/2025',
+    details: ['Added dispatch screen and handled all of its use cases.'],
+  },
+  {
+    title: 'Version 28(3.5.0)',
+    releaseDate: '16/09/2025',
+    details: ['Added stock take  screen and handled all of its use cases.'],
+  },
+  {
     title: 'Version 27(3.4.0)',
     releaseDate: '27/08/2025',
     details: ['Added paperless pick screen and handled all of its use cases.'],

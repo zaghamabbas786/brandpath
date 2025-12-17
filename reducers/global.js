@@ -3,6 +3,17 @@ const INITIAL_STATE = {
   userState: null,
   locationList: [],
   partnerList: [],
+  shippingList: [],
+  shippingListLoading: false,
+  shippingListError: null,
+  selectedShippingType: null,  // Track selected shipping type
+  dispatchList: [],
+  dispatchListLoading: false,
+  dispatchListError: null,
+  orderDetail: null,
+  orderDetailLoading: false,
+  orderDetailError: null,
+  dispatchRefNumber: null,  // Track selected order reference for dispatch detail
   barCode: null,
   globalLoading: false,
   error: null,
@@ -13,6 +24,8 @@ const INITIAL_STATE = {
   currentUrl: null,
   localCurrentPage: null,
   errorText: null,
+  webInputFocused: false,
+  printStatus: null,  // Track print command status
 };
 
 export default function global(state = INITIAL_STATE, action) {
@@ -110,13 +123,25 @@ export default function global(state = INITIAL_STATE, action) {
           : [...state.screenHistoryUrl, action.payload.page],
         globalCurrentPage: action.payload.data.barcodeResult.currentPage,
         barCode: action.payload.data.barcodeResult,
-        message: action.payload.data.message,
+        // Only set message if it's provided (not undefined)
+        ...(action.payload.data.message !== undefined && {
+          message: action.payload.data.message,
+        }),
         error: null,
         errorText: null,
       };
     }
 
     case types.GET_ESCALATION_PRINT_SUCCESS: {
+      return {
+        ...state,
+        message: action.payload.data,
+        error: null,
+        errorText: null,
+      };
+    }
+
+    case types.GET_MISC_LABEL_PRINT_SUCCESS: {
       return {
         ...state,
         message: action.payload.data,
@@ -147,6 +172,88 @@ export default function global(state = INITIAL_STATE, action) {
       return {
         ...state,
         partnerList: action.payload.partners,
+      };
+    }
+    case types.GET_SHIPPING_LIST_REQUEST: {
+      return {
+        ...state,
+        shippingListLoading: true,
+        shippingListError: null,
+      };
+    }
+    case types.GET_SHIPPING_LIST_SUCCESS: {
+      return {
+        ...state,
+        shippingList: action.payload.shippingList,
+        shippingListLoading: false,
+        shippingListError: null,
+      };
+    }
+    case types.GET_SHIPPING_LIST_ERROR: {
+      return {
+        ...state,
+        shippingListLoading: false,
+        shippingListError: action.payload.error,
+      };
+    }
+    case types.SET_SHIPPING_TYPE_REQUEST: {
+      return {
+        ...state,
+      };
+    }
+    case types.SET_SHIPPING_TYPE_SUCCESS: {
+      return {
+        ...state,
+        selectedShippingType: action.payload.courierName,  // Store the selected shipping type
+      };
+    }
+    case types.SET_SHIPPING_TYPE_ERROR: {
+      return {
+        ...state,
+      };
+    }
+    case types.GET_DISPATCH_LIST_REQUEST: {
+      return {
+        ...state,
+        dispatchListLoading: true,
+        dispatchListError: null,
+      };
+    }
+    case types.GET_DISPATCH_LIST_SUCCESS: {
+      return {
+        ...state,
+        dispatchList: action.payload.dispatchList,
+        dispatchListLoading: false,
+        dispatchListError: null,
+      };
+    }
+    case types.GET_DISPATCH_LIST_ERROR: {
+      return {
+        ...state,
+        dispatchListLoading: false,
+        dispatchListError: action.payload.error,
+      };
+    }
+    case types.GET_ORDER_DETAIL_REQUEST: {
+      return {
+        ...state,
+        orderDetailLoading: true,
+        orderDetailError: null,
+      };
+    }
+    case types.GET_ORDER_DETAIL_SUCCESS: {
+      return {
+        ...state,
+        orderDetail: action.payload.orderDetail,
+        orderDetailLoading: false,
+        orderDetailError: null,
+      };
+    }
+    case types.GET_ORDER_DETAIL_ERROR: {
+      return {
+        ...state,
+        orderDetailLoading: false,
+        orderDetailError: action.payload.error,
       };
     }
     case types.SET_DISP_ENV_ERROR: {
@@ -189,12 +296,27 @@ export default function global(state = INITIAL_STATE, action) {
         error: null,
       };
     }
+    case types.WEB_INPUT_IS_FOCUS:
+      return {
+        ...state,
+        webInputFocused: action.payload,
+      };
     case types.CLEAR_STATES: {
       return {
         ...state,
         userState: null,
         locationList: [],
         partnerList: [],
+        shippingList: [],
+        shippingListLoading: false,
+        shippingListError: null,
+        dispatchList: [],
+        dispatchListLoading: false,
+        dispatchListError: null,
+        orderDetail: null,
+        orderDetailLoading: false,
+        orderDetailError: null,
+        dispatchRefNumber: null,
         barCode: null,
         globalLoading: false,
         error: null,
@@ -205,6 +327,31 @@ export default function global(state = INITIAL_STATE, action) {
         screenHistoryUrl: [],
         currentUrl: null,
         localCurrentPage: null,
+        printStatus: null,
+      };
+    }
+    case types.SET_PRINT_STATUS: {
+      return {
+        ...state,
+        printStatus: action.payload,
+      };
+    }
+    case types.CLEAR_PRINT_STATUS: {
+      return {
+        ...state,
+        printStatus: null,
+      };
+    }
+    case types.SET_DISPATCH_REF_NUMBER: {
+      return {
+        ...state,
+        dispatchRefNumber: action.payload.refNumber,
+      };
+    }
+    case types.CLEAR_DISPATCH_REF_NUMBER: {
+      return {
+        ...state,
+        dispatchRefNumber: null,
       };
     }
     default: {

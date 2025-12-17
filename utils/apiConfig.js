@@ -4,7 +4,8 @@ import Config from 'react-native-config';
 
 // Function to get the API base URL
 export const getApiBaseUrl = () => {
-  return Config.REACT_APP_BASE_URL;
+  const baseUrl = Config.REACT_APP_BASE_URL;
+  return baseUrl;
 };
 
 // Function to get the Authorization header

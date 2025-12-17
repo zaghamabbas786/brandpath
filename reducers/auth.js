@@ -32,6 +32,14 @@ export default function auth(state = INITIAL_STATE, action) {
         errorText: action.payload.errorText,
       };
     }
+    case types.AZURE_LOGIN: {
+      return {
+        ...state,
+        status: null,
+        error: null,
+        errorText: null,
+      };
+    }
     case types.INITIAL: {
       return {
         ...state,
@@ -59,6 +67,7 @@ export default function auth(state = INITIAL_STATE, action) {
         homeScreen: action.payload.data.buttons,
         isAuthenticated: true,
         isInitialized: true,
+        status: null,
         error: null,
         errorText: null,
       };

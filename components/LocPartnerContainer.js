@@ -26,9 +26,12 @@ const LocPartnerContainer = ({
         loc => loc.stationID === userState.stationid,
       );
       if (selectedLocation) {
-        setLocation(prevLocation => prevLocation || selectedLocation);
+        setLocation(selectedLocation);
       }
     }
+  }, [userState, locationList, location]);
+
+  useEffect(() => {
     if (!partner && userState && partnerList?.length > 0) {
       // Find the partner object based on the partnerKey
       const selectedPartner = partnerList.find(
@@ -36,10 +39,10 @@ const LocPartnerContainer = ({
       );
 
       if (selectedPartner) {
-        setPartner(prevPartner => prevPartner || selectedPartner);
+        setPartner(selectedPartner);
       }
     }
-  }, [userState, locationList, partnerList, location, partner]);
+  }, [userState, partnerList, partner]);
 
   const updateEnvAndFetchState = async (newStationID, newPartnerKey) => {
     const data = {

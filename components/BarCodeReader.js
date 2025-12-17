@@ -39,10 +39,12 @@ const BarCodeReader = ({
       const handleFocus = () => {
         if (shouldRefocus && textInputRef.current && !isFocused) {
           setTimeout(() => {
-            if (textInputRef.current) {
+            if (textInputRef.current && shouldRefocus) {
               textInputRef.current.focus();
             }
           }, 100);
+        } else if (!shouldRefocus && textInputRef.current && isFocused) {
+          textInputRef.current.blur();
         }
       };
 
@@ -57,14 +59,30 @@ const BarCodeReader = ({
     }, [navigation, isFocused, shouldRefocus]),
   );
 
+  // Effect to handle shouldRefocus changes
+  React.useEffect(() => {
+    if (!shouldRefocus && textInputRef.current && isFocused) {
+      textInputRef.current.blur();
+    } else if (shouldRefocus && textInputRef.current && !isFocused) {
+      setTimeout(() => {
+        if (textInputRef.current && shouldRefocus) {
+          textInputRef.current.focus();
+        }
+      }, 100);
+    }
+  }, [shouldRefocus, isFocused]);
+
   const handleBarcodeReadComplete = async barcodeValue => {
     const lastPart = urlLastPart(currentUrl);
 
     if (
-      barcodeValue.toLowerCase() === 'cmd.back' &&
+      barcodeValue?.toLowerCase() === 'cmd.back' &&
       lastPart !== 'CMD.ESCALATION' &&
       localCurrentPage !== 'ACCESSCONTROL' &&
-      lastPart !== 'CMD.PPICK'
+      lastPart !== 'CMD.PPICK' &&
+      lastPart !== 'CMD.ST.LIST' &&
+      lastPart !== 'CMD.DISPATCH' &&
+      lastPart !== 'CMD.PDISPATCH'
     ) {
       handleGoBack();
     } else {

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
-    "android:dev": "npx react-native run-android --mode=developmentDebug --appId com.mwa.development",
+    "dev": "npx react-native run-android --mode=developmentDebug --appId com.mwa.development",
     "android:dev-release": "npx react-native run-android --mode=developmentRelease --appId com.mwa.development",
     "android:staging": "npx react-native run-android --mode=stagingDebug --appId com.mwa.staging",
     "android:staging-release": "npx react-native run-android --mode=stagingRelease --appId com.mwa.staging",
@@ -42,6 +42,7 @@
     "react-native-base64": "^0.2.1",
     "react-native-collapsible": "^1.6.2",
     "react-native-config": "^1.5.5",
+    "react-native-device-info": "^14.1.1",
     "react-native-gesture-handler": "^2.18.1",
     "react-native-keychain": "^8.2.0",
     "react-native-linear-gradient": "^2.8.3",

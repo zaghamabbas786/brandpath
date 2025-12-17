@@ -109,6 +109,9 @@ To learn more about React Native, take a look at the following resources:
 - 18/07/2025: Version 25(3.2.0)
 - 25/07/2025: Version 26(3.3.0)
 - 27/08/2025: Version 27(3.4.0)
+- 11/03/2025: Version 35(3.7.1)
+- 11/07/2025: Version 36(3.7.2)
+- 14/11/2025: Version 37(3.7.3)
 
 ## Releases
 
@@ -274,3 +277,15 @@ To learn more about React Native, take a look at the following resources:
 ### Version 27(3.4.0)
 
 - Added paperless pick screen and handled all of its use cases.
+
+### Version 35(3.7.1)
+
+- Added Logging functionality and integrated it with the app.
+
+### Version 36(3.7.2)
+
+- Fixed the label printing issue on main menu screen.
+
+### Version 37(3.7.3)
+
+- Added label printing Api on dispatch complete.

@@ -28,14 +28,12 @@ export const SnackbarProvider = ({children}) => {
       Sound.setCategory('Playback');
       const sound = new Sound('beep.mp3', Sound.MAIN_BUNDLE, error => {
         if (error) {
-          console.log('failed to load the sound', error);
+          console.error('Failed to load error sound:', error);
           return;
         }
         sound.play(success => {
-          if (success) {
-            console.log('successfully finished playing');
-          } else {
-            console.log('playback failed due to audio decoding errors');
+          if (!success) {
+            console.error('Error sound playback failed due to audio decoding errors');
           }
         });
       });
@@ -43,14 +41,12 @@ export const SnackbarProvider = ({children}) => {
       Sound.setCategory('Playback');
       const sound = new Sound('ding.mp3', Sound.MAIN_BUNDLE, error => {
         if (error) {
-          console.log('failed to load the sound', error);
+          console.error('Failed to load success sound:', error);
           return;
         }
         sound.play(success => {
-          if (success) {
-            console.log('successfully finished playing');
-          } else {
-            console.log('playback failed due to audio decoding errors');
+          if (!success) {
+            console.error('Success sound playback failed due to audio decoding errors');
           }
         });
       });
@@ -77,16 +73,6 @@ export const SnackbarProvider = ({children}) => {
         return '';
       })
       .join(' ');
-
-    // const formattedMessages = messagesArray
-    //   .filter(msg => typeof msg === 'string') // Filter only string messages
-    //   .map((msg, index) => {
-    //     const titleCasedMsg = msg.charAt(0).toUpperCase() + msg.slice(1);
-    //     return index === 0
-    //       ? `<p style="color: #ffffff; font-weight: bold; margin: 0; padding: 0; display: inline;">${titleCasedMsg}</p>`
-    //       : `<p style="color: #ffffff; margin: 0; padding: 0; display: inline;">${titleCasedMsg}</p>`;
-    //   })
-    //   .join(' ');
 
     // Set the error message, type, and show the Snackbar
     setSnackbarMessage(formattedMessages);

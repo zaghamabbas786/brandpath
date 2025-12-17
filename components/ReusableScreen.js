@@ -8,6 +8,7 @@ import Spinner from 'react-native-loading-spinner-overlay';
 import {useIsFocused} from '@react-navigation/native';
 import {chunkArray} from '../utils/chunkArray';
 import ButtonWithIcon from './ButtonWithIcon';
+import {useLogger} from '../hooks/useLogger';
 
 const ReusableScreen = ({
   Global: {
@@ -23,8 +24,10 @@ const ReusableScreen = ({
   navigation,
 }) => {
   const isFocused = useIsFocused();
+  const logger = useLogger();
+
   useEffect(() => {
-    if (!isFocused) return;
+    if (!isFocused) {return;}
 
     let isMounted = true;
 
@@ -50,8 +53,17 @@ const ReusableScreen = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFocused]);
 
-  const handleNavigate = ({screen, action}) => {
+  const handleNavigate = ({screen, action, buttonName}) => {
     const trimmedUrl = action.url.trim();
+
+    // Log sub-menu navigation
+    logger.userAction(`Select ${buttonName || screen}`, {
+      screenName: screen,
+      url: trimmedUrl,
+      optionSelected: buttonName || screen,
+      parentUrl: currentUrl,
+    });
+
     getScreen(trimmedUrl);
     navigation.navigate(screen);
   };
@@ -101,6 +113,7 @@ const ReusableScreen = ({
                   handleNavigate({
                     screen: button.navigation,
                     action: button.action,
+                    buttonName: button.name,
                   })
                 }
                 vertical={true}

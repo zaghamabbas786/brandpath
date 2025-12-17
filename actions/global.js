@@ -28,7 +28,7 @@ export const barCodeSuccess = data => ({
 
 export const getUserStateRequest = username => ({
   type: types.GET_USER_STATE_REQUEST,
-  username,
+  payload: {username},
 });
 
 export const getUserStateSuccess = data => ({
@@ -125,4 +125,73 @@ export const clearError = () => ({
 
 export const clearStates = () => ({
   type: types.CLEAR_STATES,
+});
+
+export const getShippingListRequest = userName => ({
+  type: types.GET_SHIPPING_LIST_REQUEST,
+  payload: {userName},
+});
+
+export const getShippingListSuccess = shippingList => ({
+  type: types.GET_SHIPPING_LIST_SUCCESS,
+  payload: {shippingList},
+});
+
+export const getShippingListError = ({error, errorText}) => ({
+  type: types.GET_SHIPPING_LIST_ERROR,
+  payload: {error, errorText},
+});
+
+export const setShippingTypeRequest = (userName, courierName) => ({
+  type: types.SET_SHIPPING_TYPE_REQUEST,
+  payload: {userName, courierName},
+});
+
+export const setShippingTypeSuccess = (message, courierName) => ({
+  type: types.SET_SHIPPING_TYPE_SUCCESS,
+  payload: {message, courierName},
+});
+
+export const setShippingTypeError = ({error, errorText}) => ({
+  type: types.SET_SHIPPING_TYPE_ERROR,
+  payload: {error, errorText},
+});
+
+export const getDispatchListRequest = userName => ({
+  type: types.GET_DISPATCH_LIST_REQUEST,
+  payload: {userName},
+});
+
+export const getDispatchListSuccess = dispatchList => ({
+  type: types.GET_DISPATCH_LIST_SUCCESS,
+  payload: {dispatchList},
+});
+
+export const getDispatchListError = ({error, errorText}) => ({
+  type: types.GET_DISPATCH_LIST_ERROR,
+  payload: {error, errorText},
+});
+
+export const getOrderDetailRequest = (userName, orderRef) => ({
+  type: types.GET_ORDER_DETAIL_REQUEST,
+  payload: {userName, orderRef},
+});
+
+export const getOrderDetailSuccess = orderDetail => ({
+  type: types.GET_ORDER_DETAIL_SUCCESS,
+  payload: {orderDetail},
+});
+
+export const getOrderDetailError = ({error, errorText}) => ({
+  type: types.GET_ORDER_DETAIL_ERROR,
+  payload: {error, errorText},
+});
+
+export const setDispatchRefNumber = refNumber => ({
+  type: types.SET_DISPATCH_REF_NUMBER,
+  payload: {refNumber},
+});
+
+export const clearDispatchRefNumber = () => ({
+  type: types.CLEAR_DISPATCH_REF_NUMBER,
 });

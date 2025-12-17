@@ -12,6 +12,7 @@ import {
 import * as types from '../actions';
 import * as actions from '../actions/auth';
 import * as global from '../actions/global';
+import * as loggingActions from '../actions/logging';
 import * as authApi from '../api/auth';
 import {authorize, revoke} from 'react-native-app-auth';
 import {clearTokenTimeout, setSession} from '../auth/utils';
@@ -20,40 +21,7 @@ import {decodeJwt} from '../utils/jwt';
 import {azureConfig} from '../utils/azureConfig';
 import {formatError} from '../utils/errorHandler';
 import {getAzureFriendlyError} from '../utils/azureErrorMapper';
-
-function* testApiSaga() {
-  yield put(actions.setLoading(true));
-
-  try {
-    const response = yield call(authApi.testApi);
-
-    if (response.status === 200) {
-      yield put(actions.testApiSuccess(response.status));
-    } else {
-      yield put(
-        actions.testApiError({
-          error: `Unexpected response status: ${response.status}`,
-        }),
-      );
-    }
-  } catch (e) {
-    const formattedError = formatError(e);
-
-    yield put(
-      actions.testApiError({
-        error: formattedError,
-        errorText: formattedError,
-        status: e.status,
-      }),
-    );
-  } finally {
-    yield put(actions.setLoading(false));
-  }
-}
-
-function* watchTestApi() {
-  yield takeLatest(types.TEST_API_REQUEST, testApiSaga);
-}
+import {resetSessionContext} from './logging';
 
 function* initSession({payload}) {
   try {
@@ -97,6 +65,14 @@ function* azureLoginSaga() {
   yield put(actions.setLoading(true));
 
   try {
+    // Log Azure login attempt
+    yield put(
+      loggingActions.logInfo('Azure login initiated', {
+        eventType: 'user_action',
+        action: 'azure_login_started',
+      }),
+    );
+
     const timeoutMs = 60000;
 
     const {result, timeout} = yield race({
@@ -105,6 +81,12 @@ function* azureLoginSaga() {
     });
 
     if (timeout) {
+      yield put(
+        loggingActions.logWarning('Azure login timeout', {
+          eventType: 'auth',
+          timeout: timeoutMs,
+        }),
+      );
       yield put(
         actions.loginError({
           error: ['Login Timeout', 'Login is taking too long. Please retry.'],
@@ -118,11 +100,28 @@ function* azureLoginSaga() {
     }
 
     const username = decodeJwt(result.accessToken);
-    if (!username) throw new Error('Token decode failed.');
+    if (!username) {throw new Error('Token decode failed.');}
+
+    yield put(
+      loggingActions.logInfo('Azure login successful', {
+        eventType: 'auth',
+        username: username,
+        authMethod: 'azure',
+      }),
+    );
 
     yield put(actions.loginUserWithoutPinAction(username));
     yield call(Keychain.setGenericPassword, 'authToken', result.accessToken);
+
+    // Reset session context after saving credentials so future logs use the correct username
+    resetSessionContext();
   } catch (error) {
+    yield put(
+      loggingActions.logError('Azure login failed', error, {
+        eventType: 'auth',
+        authMethod: 'azure',
+      }),
+    );
     const [errorMessage, errorDetail] = getAzureFriendlyError(error.message);
     yield put(actions.loginError({error: [errorMessage, errorDetail]}));
   } finally {
@@ -134,6 +133,14 @@ function* loginWithoutPinSaga(payload) {
   try {
     yield put(actions.setLoading(true));
 
+    yield put(
+      loggingActions.logInfo('Login without PIN initiated', {
+        eventType: 'auth',
+        username: payload.userName,
+        authMethod: 'azure_without_pin',
+      }),
+    );
+
     const response = yield call(authApi.loginWithoutPin, payload.userName);
 
     if (response.status === 200) {
@@ -141,8 +148,8 @@ function* loginWithoutPinSaga(payload) {
         yield put(
           actions.loginError({
             error: [
-              'Unexpected error occurred',
-              'Response format is invalid or empty.',
+              'Server Error',
+              'API returned empty response. Please check backend server.',
             ],
           }),
         );
@@ -150,6 +157,17 @@ function* loginWithoutPinSaga(payload) {
         response.data.result.errorText &&
         response.data.result.errorText !== 'Reset PIN'
       ) {
+        yield put(
+          loggingActions.logError(
+            'Login without PIN failed',
+            new Error(response.data.result.errorText),
+            {
+              eventType: 'auth',
+              username: payload.userName,
+              errorDetail: response.data.result.errorDetail,
+            },
+          ),
+        );
         yield put(
           actions.loginError({
             error: [
@@ -164,6 +182,12 @@ function* loginWithoutPinSaga(payload) {
           response.data.result.errorText &&
           response.data.result.errorText === 'Reset PIN'
         ) {
+          yield put(
+            loggingActions.logInfo('PIN reset required', {
+              eventType: 'auth',
+              username: payload.userName,
+            }),
+          );
           yield call(navigate, {
             name: 'ChangePinScreen',
             param: {
@@ -172,6 +196,13 @@ function* loginWithoutPinSaga(payload) {
             },
           });
         } else {
+          yield put(
+            loggingActions.logInfo('Login without PIN successful', {
+              eventType: 'auth',
+              username: response.data.result.username,
+              authMethod: 'azure_without_pin',
+            }),
+          );
           //set session
           yield put(actions.initializeSession(response.data));
 
@@ -179,6 +210,9 @@ function* loginWithoutPinSaga(payload) {
           yield put(global.getLocationListRequest()); // Trigger getLocationList saga
           yield put(global.getPartnerListRequest()); // Trigger getPartnerList saga
           yield put(actions.loginUserSuccess(response.data));
+
+          // Reset session context after successful login so logs use fresh user data
+          resetSessionContext();
         }
       }
     } else {
@@ -189,6 +223,12 @@ function* loginWithoutPinSaga(payload) {
       );
     }
   } catch (e) {
+    yield put(
+      loggingActions.logError('Login without PIN exception', e, {
+        eventType: 'auth',
+        username: payload.userName,
+      }),
+    );
     const formattedError = formatError(e);
     yield put(
       actions.loginError({
@@ -204,6 +244,15 @@ function* loginWithoutPinSaga(payload) {
 function* loginSaga(payload) {
   try {
     yield put(actions.setLoading(true));
+
+    yield put(
+      loggingActions.logInfo('Login with PIN initiated', {
+        eventType: 'auth',
+        username: payload.userName,
+        authMethod: 'pin',
+      }),
+    );
+
     const response = yield call(
       authApi.login,
       payload.userName,
@@ -226,6 +275,17 @@ function* loginSaga(payload) {
         response.data.result.errorText !== 'Reset PIN'
       ) {
         yield put(
+          loggingActions.logError(
+            'Login with PIN failed',
+            new Error(response.data.result.errorText),
+            {
+              eventType: 'auth',
+              username: payload.userName,
+              errorDetail: response.data.result.errorDetail,
+            },
+          ),
+        );
+        yield put(
           actions.loginError({
             error: [
               response.data.result.errorText,
@@ -239,6 +299,12 @@ function* loginSaga(payload) {
           response.data.result.errorText &&
           response.data.result.errorText === 'Reset PIN'
         ) {
+          yield put(
+            loggingActions.logInfo('PIN reset required', {
+              eventType: 'auth',
+              username: payload.userName,
+            }),
+          );
           yield call(navigate, {
             name: 'ChangePinScreen',
             param: {
@@ -247,6 +313,13 @@ function* loginSaga(payload) {
             },
           });
         } else {
+          yield put(
+            loggingActions.logInfo('Login with PIN successful', {
+              eventType: 'auth',
+              username: response.data.result.username,
+              authMethod: 'pin',
+            }),
+          );
           //set session
           yield put(actions.initializeSession(response.data));
 
@@ -255,6 +328,9 @@ function* loginSaga(payload) {
           yield put(global.getLocationListRequest()); // Trigger getLocationList saga
           yield put(global.getPartnerListRequest()); // Trigger getPartnerList saga
           yield put(actions.loginUserSuccess(response.data));
+
+          // Reset session context after successful login so logs use fresh user data
+          resetSessionContext();
         }
       }
     } else {
@@ -265,6 +341,12 @@ function* loginSaga(payload) {
       );
     }
   } catch (e) {
+    yield put(
+      loggingActions.logError('Login with PIN exception', e, {
+        eventType: 'auth',
+        username: payload.userName,
+      }),
+    );
     const formattedError = formatError(e);
     yield put(
       actions.loginError({
@@ -344,6 +426,8 @@ function* sessionExpire({userName}) {
 
     yield call(setSession, null);
     clearTokenTimeout();
+    // Reset logging session context
+    resetSessionContext();
     yield put(actions.sessionExpireSuccess());
     yield put(actions.clearStates());
   } catch (e) {
@@ -380,6 +464,8 @@ function* logout({userName}) {
       clearTokenTimeout();
       // Clear session and update the state
       yield call(setSession, null);
+      // Reset logging session context
+      resetSessionContext();
       yield put(actions.logoutSuccess());
       yield put(actions.clearStates());
     } else {
@@ -404,7 +490,6 @@ function* watchLogoutRequest() {
 }
 
 const authSagas = [
-  fork(watchTestApi),
   fork(watchInitSession),
   fork(watchUserAuthentication),
   fork(watchLogoutRequest),

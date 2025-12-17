@@ -20,7 +20,7 @@ import * as Sentry from '@sentry/react-native';
 import {decodeJwt} from './utils/jwt';
 
 Sentry.init({
-  dsn: 'https://94b7ee2504367ab346b16e3fbcbbdfce@o4509763158802432.ingest.de.sentry.io/4509763161227344',
+  dsn: 'https://d9662ad4abf05d35701627f363a229ec@o4510109389029376.ingest.us.sentry.io/4510109391978496',
 
   // Adds more context data to events (IP address, cookies, user, etc.)
   // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
@@ -46,8 +46,8 @@ const App = () => {
       return Buffer.from(input, 'base64').toString('binary');
     };
   }
-  const {isAuthenticated, isInitialized, user} = useSelector(
-    state => state.Auth,
+  const {isAuthenticated, isInitialized} = useSelector(
+    (state: any) => state.Auth,
   );
 
   useEffect(() => {
@@ -55,24 +55,29 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    const setSentryUser = async () => {
+    const initializeTracking = async () => {
       try {
         const credentials = await Keychain.getGenericPassword();
         if (credentials) {
           const username = decodeJwt(credentials.password);
+          
+          // Set Sentry user
           Sentry.setUser({
             username: username ?? undefined,
           });
+        
         } else {
-          Sentry.setUser(null); // clear user if nothing found
+          Sentry.setUser(null);
         }
+        
+      
       } catch (error) {
-        // Optional: report keychain errors too
+        // Report errors to both Sentry and Firebase Crashlytics
         Sentry.captureException(error);
       }
     };
 
-    setSentryUser();
+    initializeTracking();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (

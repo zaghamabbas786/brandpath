@@ -11,7 +11,17 @@ import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome5';
 
-const StockMoveModal = ({visible, onClose, value, onSave}) => {
+const StockMoveModal = ({
+  visible,
+  onClose,
+  value,
+  onSave,
+  title = 'Edit Source Location',
+  placeholder = 'Enter Source Location',
+  buttonText = 'Search',
+  keyboardType = 'default',
+  showIcon = true,
+}) => {
   const [localValue, setLocalValue] = useState(value);
 
   const isDisabled = !localValue && localValue !== 0;
@@ -31,7 +41,7 @@ const StockMoveModal = ({visible, onClose, value, onSave}) => {
         <View style={styles.modalView}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.modalTitle}>Edit Source Location</Text>
+            <Text style={styles.modalTitle}>{title}</Text>
             <TouchableOpacity style={styles.closeIcon} onPress={onClose}>
               <Ionicons name="close" size={24} color="black" />
             </TouchableOpacity>
@@ -42,11 +52,11 @@ const StockMoveModal = ({visible, onClose, value, onSave}) => {
             style={[styles.modalInput, isFocused && styles.focusedInput]}
             value={localValue?.toString() || ''}
             onChangeText={setLocalValue}
-            placeholder="Enter Source Location"
+            placeholder={placeholder}
             placeholderTextColor="#767b7f"
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            keyboardType={typeof value === 'number' ? 'numeric' : 'default'}
+            keyboardType={keyboardType}
           />
 
           {/* Save Button */}
@@ -61,15 +71,17 @@ const StockMoveModal = ({visible, onClose, value, onSave}) => {
               colors={['#0175b2', '#4b3d91']}
               style={styles.buttonGradient}>
               <View style={styles.buttonContent}>
-                <FontAwesome
-                  name="search-plus" // Use FontAwesome 5 outline icon name
-                  size={20}
-                  color="#fff"
-                  style={styles.icon}
-                  solid={false} // Use outline (light) style
-                />
+                {showIcon ? (
+                  <FontAwesome
+                    name="search-plus"
+                    size={20}
+                    color="#fff"
+                    style={styles.icon}
+                    solid={false}
+                  />
+                ) : null}
                 <Text style={[styles.buttonText, {paddingHorizontal: 0}]}>
-                  Search
+                  {buttonText}
                 </Text>
               </View>
             </LinearGradient>

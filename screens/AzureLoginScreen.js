@@ -13,12 +13,13 @@ import {
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import logoImage from '../assets/images/logo.png';
-import {azureLoginAction, testApiRequest} from '../actions/auth';
+import {azureLoginAction} from '../actions/auth';
 import {addEventListener} from '@react-native-community/netinfo';
+import Spinner from 'react-native-loading-spinner-overlay';
 
 const {width, height} = Dimensions.get('window');
 
-const AzureLoginScreen = ({Auth: {status, errorText}, azureLogin, testApi}) => {
+const AzureLoginScreen = ({Auth: {status, errorText, loading}, azureLogin}) => {
   const [isConnected, setIsConnected] = useState(true);
 
   useEffect(() => {
@@ -31,17 +32,13 @@ const AzureLoginScreen = ({Auth: {status, errorText}, azureLogin, testApi}) => {
     };
   }, []);
 
-  useEffect(() => {
-    // Check the welcome API status on component mount
-    testApi();
-  }, [testApi]);
-
   const handleSubmitPress = async () => {
     azureLogin();
   };
 
   return (
     <View style={styles.container}>
+      {loading && <Spinner visible={true} />}
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled">
@@ -221,13 +218,11 @@ const styles = StyleSheet.create({
 AzureLoginScreen.propTypes = {
   Auth: PropTypes.object.isRequired,
   azureLogin: PropTypes.func.isRequired,
-  testApi: PropTypes.func.isRequired,
 };
 
 const mapStateToProps = state => ({
   Auth: state.Auth,
 });
 export default connect(mapStateToProps, {
-  testApi: testApiRequest,
   azureLogin: azureLoginAction,
 })(AzureLoginScreen);

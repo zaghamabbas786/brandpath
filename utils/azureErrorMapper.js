@@ -2,7 +2,7 @@
 
 export function getAzureFriendlyError(errorMessage) {
   if (!errorMessage)
-    return ['Azure login failed', 'An unknown error occurred.'];
+    {return ['Azure login failed', 'An unknown error occurred.'];}
 
   const msg = errorMessage.toLowerCase();
 

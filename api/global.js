@@ -13,7 +13,7 @@ export const getScreenData = async (userName, url) => {
 export const getUserState = username =>
   axios.get('/mobile/GetUserState', {
     params: {
-      username,
+      UserName: username,  // Backend might expect UserName (capital U)
     },
   });
 
@@ -32,9 +32,53 @@ export const setDispEnv = (userName, stationID, partnerKey) =>
   });
 
 // Function to set location and partner values
-export const scanBarcode = (userName, page, barcode) =>
-  axios.post('/mobile/Scan', {
+export const scanBarcode = (userName, page, barcode) => {
+  console.log('🚀 API - scanBarcode called with parameters:', {
     userName,
     page,
     barcode,
   });
+  console.log('🎯 API - page parameter value:', page);
+  
+  return axios.post('/mobile/Scan', {
+    userName,
+    page,
+    barcode,
+  });
+};
+
+// Function to get shipping list - FIXED: Added userName parameter
+export const getShippingList = (userName) =>
+  axios.get('/mobile/GetShippingList', {
+    params: {
+      UserName: userName, // Match the backend parameter name
+    },
+  });
+
+// Function to set shipping type
+export const setShippingType = (userName, courierName) =>
+  axios.post('/mobile/SetShippingType', {
+    userName,
+    courierName,
+  });
+
+// Function to get dispatch list
+export const getDispatchList = userName =>
+  axios.get('/mobile/GetDispatchList', {
+    params: {
+      UserName: userName,
+    },
+  });
+
+// Function to get order detail
+export const getOrderDetail = (userName, orderRef) =>
+  axios.get('/mobile/GetOrderDetail', {
+    params: {
+      UserName: userName,
+      OrderRef: orderRef,
+    },
+  });
+
+// Function to send logs to backend
+export const sendLogs = logs =>
+  axios.post('/mobile/Logging', logs[0]);

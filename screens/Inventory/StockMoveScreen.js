@@ -1,7 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {connect} from 'react-redux';
 import PropTypes from 'prop-types';
-import {View, Text, StyleSheet, Keyboard, TouchableOpacity} from 'react-native';
+import {View, Text, StyleSheet, Keyboard, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView} from 'react-native';
 import {
   getStartStockMoveRequest,
   getStockMoveQtyRequest,
@@ -65,7 +65,7 @@ const StockMoveScreen = ({
   const [destloc, setDestloc] = useState('');
 
   useEffect(() => {
-    if (!isFocused) return;
+    if (!isFocused) {return;}
 
     let isMounted = true;
 
@@ -156,7 +156,17 @@ const StockMoveScreen = ({
   return (
     <View style={styles.container}>
       <NestedPageHeader pageName="Stock Move" />
-      <>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.keyboardAvoidingView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
         {errorText ? (
           <View style={styles.inputContainerView}>
             {Array.isArray(errorText) ? (
@@ -237,6 +247,8 @@ const StockMoveScreen = ({
                       onSave={newValue => {
                         handleSearch('sku', newValue);
                       }}
+                      title={'Edit SKU '}
+                      placeholder={'Enter SKU'}
                     />
                   </>
                 ) : null}
@@ -280,6 +292,8 @@ const StockMoveScreen = ({
                       onSave={newValue => {
                         handleSearch('qty', newValue);
                       }}
+                      title={'Edit Quantity'}
+                      placeholder={'Enter Quantity'}
                     />
 
                     <View style={styles.inputContainer}>
@@ -312,6 +326,8 @@ const StockMoveScreen = ({
                       }
                       value={formData.destloc}
                       onSave={newValue => handleSearch('destloc', newValue)}
+                      title={'Edit Destination Location'}
+                      placeholder={'Enter Destination Location'}
                     />
                     {conformSetMasterLoc ? (
                       <>
@@ -399,7 +415,8 @@ const StockMoveScreen = ({
             )}
           </>
         )}
-      </>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };
@@ -407,6 +424,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+    width: '100%',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   inputContainerView: {
     backgroundColor: 'white',
@@ -435,9 +461,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     justifyContent: 'center',
-  },
-  scrollContainer: {
-    paddingBottom: 20,
   },
 
   inputContainer: {

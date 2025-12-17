@@ -1,24 +1,45 @@
 // ScanDetailScreen.js
-import React, {useEffect, useRef} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {WebView} from 'react-native-webview';
 import {connect} from 'react-redux';
 import PropTypes from 'prop-types';
 import {barCodeAction} from '../actions/global';
+import {getMiscLabelPrintRequest} from '../actions/miscLabel';
+import {setPrintStatus as setPrintStatusAction, clearPrintStatus as clearPrintStatusAction} from '../actions/printStatus';
 import {useNavigation} from '@react-navigation/native';
 import {resetDockToStock} from '../actions/goodsIn';
 import {goBack} from '../actions/global';
 import {urlLastPart} from '../utils/urlLastPart';
+import StockMoveModal from '../components/StockMoveModal';
 
 const ScanDetailScreen = ({
-  Global: {barCode, currentUrl, error, screenHistoryUrl},
+  Global: {barCode, currentUrl, error, screenHistoryUrl, loading: globalLoading, userState, printStatus},
   Auth: {user},
   scanBarcode,
   onBarcodeRefocus,
   goBackAction,
   resetDockToStock,
+  getMiscLabelPrintRequest,
+  setPrintStatus,
+  clearPrintStatus,
 }) => {
   const navigation = useNavigation();
   const webViewRef = useRef(null);
+  const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const [commentValue, setCommentValue] = useState('');
+
+  // Handle print when data is loaded
+  useEffect(() => {
+    // If we have a print command and data is loaded
+    if (printStatus && barCode?.param && !globalLoading) {
+      getMiscLabelPrintRequest({
+        OrderRef: barCode?.param,
+        StationID: userState?.stationid,
+      });
+      clearPrintStatus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [barCode?.param, globalLoading, printStatus, userState?.stationid]);
 
   useEffect(() => {
     // Focus the input field when the component mounts
@@ -35,11 +56,42 @@ const ScanDetailScreen = ({
   const onMessage = event => {
     const code = event.nativeEvent.data;
 
+    // Check if the message is to open the comment modal
+    if (code === 'OPEN_COMMENT_MODAL') {
+      setCommentModalVisible(true);
+      return;
+    }
+
+    // Handle print command
+    if (code.includes('CMD.NONSTOCK?op=print')) {
+      setPrintStatus(code);
+    }
+
     const lastPart = urlLastPart(currentUrl);
+    
     const data = {
       userName: user.username,
       page: barCode.page,
       barcode: code,
+      currentPage: lastPart,
+    };
+
+    scanBarcode(data);
+  };
+
+  const handleCommentSave = (newComment) => {
+    setCommentValue(newComment);
+
+    // Send command to backend to save the comment
+    const lastPart = urlLastPart(currentUrl);
+
+    // Construct the command with the comment parameter
+    const commentCommand = `CMD.NONSTOCK?m=${newComment || ''}`;
+
+    const data = {
+      userName: user.username,
+      page: barCode.page,
+      barcode: commentCommand,
       currentPage: lastPart,
     };
 
@@ -119,33 +171,64 @@ const ScanDetailScreen = ({
         }
       });
     }
+
+    // Add click handler for comment section
+    const commentContainers = document.querySelectorAll('.nested-bg-card');
+    commentContainers.forEach(container => {
+      const keyValuePair = container.querySelector('.key-value-pair');
+      if (keyValuePair && keyValuePair.textContent.includes('Comment:')) {
+        // Make the entire container clickable
+        container.style.cursor = 'pointer';
+        container.addEventListener('click', (e) => {
+          // Prevent triggering if clicking on a button or modal
+          if (!e.target.classList.contains('dropdown-btn') && 
+              !e.target.closest('.modal')) {
+            window.ReactNativeWebView.postMessage('OPEN_COMMENT_MODAL');
+          }
+        });
+      }
+    });
   })();`;
 
   return (
-    <WebView
-      ref={webViewRef}
-      originWhitelist={['*']}
-      source={{
-        html: `
-          <html>
-            <head>
-            <meta name="viewport" content="width=device-width, initial-scale=0.79, maximum-scale=0.79, user-scalable=no">
-            <style>
-             ${barCode && barCode.commonCss}
-       
-            </style>
-             </head>
-            <body>
-            ${barCode ? barCode.extraInfo : ''}
-           
-            
-                </body>
-          </html>
-        `,
-      }}
-      injectedJavaScript={injectedJS}
-      onMessage={onMessage}
-    />
+    <>
+      <WebView
+        ref={webViewRef}
+        originWhitelist={['*']}
+        source={{
+          html: `
+            <html>
+              <head>
+              <meta name="viewport" content="width=device-width, initial-scale=0.79, maximum-scale=0.79, user-scalable=no">
+              <style>
+               ${barCode && barCode.commonCss}
+         
+              </style>
+               </head>
+              <body>
+              ${barCode ? barCode.extraInfo : ''}
+             
+              
+                  </body>
+            </html>
+          `,
+        }}
+        injectedJavaScript={injectedJS}
+        onMessage={onMessage}
+      />
+
+      <StockMoveModal
+        visible={commentModalVisible}
+        onClose={() => setCommentModalVisible(false)}
+        value={commentValue}
+        onSave={handleCommentSave}
+        title="Enter Comment"
+        placeholder="Enter Comment"
+        buttonText="Save"
+        keyboardType="default"
+        showIcon={false}
+      />
+    </>
   );
 };
 
@@ -155,6 +238,9 @@ ScanDetailScreen.propTypes = {
   scanBarcode: PropTypes.func.isRequired,
   goBackAction: PropTypes.func.isRequired,
   resetDockToStock: PropTypes.func.isRequired,
+  getMiscLabelPrintRequest: PropTypes.func.isRequired,
+  setPrintStatus: PropTypes.func.isRequired,
+  clearPrintStatus: PropTypes.func.isRequired,
 };
 
 const mapStateToProps = state => ({
@@ -166,4 +252,7 @@ export default connect(mapStateToProps, {
   scanBarcode: barCodeAction,
   goBackAction: goBack,
   resetDockToStock: resetDockToStock,
+  getMiscLabelPrintRequest,
+  setPrintStatus: setPrintStatusAction,
+  clearPrintStatus: clearPrintStatusAction,
 })(ScanDetailScreen);
